@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Bomberman</title>
+  <link rel="stylesheet" href="style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+  <h1>BomberMan</h1>
+
+    <div>
+        Field Size for X
+        <input
+          type="number"
+          min="10"
+          max="20"
+          id="fieldX"
+          placeholder="30"
+        ></input>
+    </div>
+    <div>
+      Field Size for Y
+        <input
+          type="number"
+          min="10"
+          max="20"
+          id="fieldY"
+          placeholder="20"
+        ></input>
+      </div>
+      <div>
+        Number of Enemies
+        <input
+          type="number"
+          id="enemies"
+          min="1"
+          max="15"
+          placeholder="10"
+        ></input>
+      </div>
+      <div>
+        <button type="button" id="startButton">
+        Start the Game
+      </button>
+      </div>
+    <div id="status"></div>
+    <pre id="app"></pre>
+  <script src="main.js"></script>
+</body>
+</html>
