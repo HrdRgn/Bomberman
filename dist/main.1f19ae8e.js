@@ -125,24 +125,40 @@ var workField = [];
 var playerPosition = [];
 var direction = [0, 0];
 var lastDirection = [0, 1];
-var fieldY = "";
-var fieldX = "";
-var enemies = "";
-var place = false;
 var bomb = "B&#8200;&#8200;";
 var freeField = "&#8195;";
 var monster = "M&#8202;";
 var block = "&#9609;";
 var player = "P&#8196;&#8202;";
-var enemy = "p&#8196;&#8202;";
 var fire = "F&#8202;&#8197;&#8202;";
 var box = "&#9618;&#8198;&#8202;";
+var gameInterval;
+var fieldY;
+var fieldX;
+var enemies;
+var place;
 var startButton = document.getElementById("startButton");
+
+function validate(name, info, min, max) {
+  if (info >= min && info <= max) {
+    return true;
+  } else {
+    alert("Please input correct ".concat(name, " (between ").concat(min, " and ").concat(max, ")"));
+    return false;
+  }
+}
+
 startButton.addEventListener("click", function (e) {
-  fieldX = Number(document.getElementById("fieldX").value) || 30;
-  fieldY = Number(document.getElementById("fieldY").value) || 20;
+  fieldX = Math.round(Number(document.getElementById("fieldX").value)) || 30;
+  fieldY = Math.round(Number(document.getElementById("fieldY").value)) || 20;
   enemies = Number(document.getElementById("enemies").value) || 10;
 
+  if (validate("fieldX", fieldX, 10, 30) && validate("fieldY", fieldY, 10, 30) && validate("enemies", enemies, 1, 15)) {
+    gameStart();
+  }
+});
+
+function gameStart() {
   for (var i = 0; i < enemies; i++) {
     monsterPosition[i] = new Array(3);
     monsterPosition[i][0] = getRandom(1, fieldY);
@@ -165,9 +181,9 @@ startButton.addEventListener("click", function (e) {
           return item[0] === _i && item[1] === j;
         })) {
           workField[_i][j] = monster;
-        } else if (getRandom(0, 0.545)) {
+        } else if (getRandom(0, 0.565)) {
           workField[_i][j] = block;
-        } else if (getRandom(0, 1)) {
+        } else if (getRandom(1, 1.4)) {
           workField[_i][j] = box;
         } else {
           workField[_i][j] = freeField;
@@ -185,17 +201,36 @@ startButton.addEventListener("click", function (e) {
   }
 
   workField[playerPosition[0]][playerPosition[1]] = player;
+  createField();
   document.getElementById("status").innerText = playerPosition[2];
+  document.getElementById("startButton").style.visibility = "hidden";
+  gameInterval = setInterval(function () {
+    return runningGame();
+  }, 500);
+}
+
+function createField() {
   workField.map(function (item) {
     var array = document.createElement("div");
     array.innerHTML = item.join("");
     document.getElementById("app").appendChild(array);
   });
-  document.getElementById("startButton").style.visibility = "hidden";
-  setInterval(function () {
-    return runningGame();
-  }, 500);
-});
+}
+
+function updateField() {
+  workField.map(function (item) {
+    var array = document.createElement("div");
+    array.innerHTML = item.join("");
+    var app = document.getElementById("app").childNodes[workField.indexOf(item)];
+    document.getElementById("app").replaceChild(array, app);
+  });
+}
+
+function clearField() {
+  workField.map(function () {
+    document.getElementById("app").firstChild.remove();
+  });
+}
 
 function getRandom(min, max) {
   return Math.round(Math.random() * (max - min) + min);
@@ -204,15 +239,10 @@ function getRandom(min, max) {
 function runningGame() {
   updatePlayerPosition();
   monsterThinks();
-  bombSequence();
   monsterMove();
+  bombSequence();
   document.getElementById("status").innerText = playerPosition[2];
-  workField.map(function (item) {
-    var array = document.createElement("div");
-    array.innerHTML = item.join("");
-    var app = document.getElementById("app").childNodes[workField.indexOf(item)];
-    document.getElementById("app").replaceChild(array, app);
-  });
+  updateField();
 
   if (!monsterPosition.some(function (item) {
     return item[2] !== "Dead";
@@ -220,8 +250,16 @@ function runningGame() {
     document.getElementById("status").innerText = "Victory";
   }
 
-  if (playerPosition[2] === "Killed" || document.getElementById("status").innerText === 'Victory') {
-    document.getElementById("startButton").style.visibility = "visible";
+  if (playerPosition[2] === "Killed") {
+    document.getElementById("status").innerText = "Defeat";
+  }
+
+  if (document.getElementById("status").innerText === "Defeat" || document.getElementById("status").innerText === "Victory") {
+    clearInterval(gameInterval);
+    setTimeout(function () {
+      clearField();
+      document.getElementById("startButton").style.visibility = "visible";
+    }, 2500);
   }
 }
 
@@ -230,7 +268,10 @@ function monsterThinks() {
     if (item[2] !== "Dead") {
       var nextStepY = item[0] + getRandom(-1, 1);
       var nextStepX = item[1] + getRandom(-1.49, 1.49);
-      workField[item[0]][item[1]] = freeField;
+
+      if (workField[item[0]][item[1]] === monster) {
+        workField[item[0]][item[1]] = freeField;
+      }
 
       if (nextStepY > 0 && nextStepY < fieldY && !monsterPosition.some(function (it) {
         return it[0] === nextStepY && it[1] === item[1];
@@ -251,11 +292,10 @@ function monsterMove() {
 
     if (a === fire) {
       item[2] = "Dead";
-    }
-
-    if (item[2] !== "Dead") {
+    } else if (item[2] !== "Dead") {
       if (a === player) {
         playerPosition[2] = "Killed";
+        workField[item[0]][item[1]] = monster;
       } else {
         workField[item[0]][item[1]] = monster;
       }
@@ -272,12 +312,11 @@ function updatePlayerPosition() {
         playerPosition[2] = "Killed";
       }
 
-      workField[playerPosition[0]][playerPosition[1]] = freeField;
-      playerPosition[0] += direction[0];
-      playerPosition[1] += direction[1];
-      workField[playerPosition[0]][playerPosition[1]] = player;
-
       if (direction[0] !== 0 || direction[1] !== 0) {
+        workField[playerPosition[0]][playerPosition[1]] = freeField;
+        playerPosition[0] += direction[0];
+        playerPosition[1] += direction[1];
+        workField[playerPosition[0]][playerPosition[1]] = player;
         lastDirection[0] = direction[0];
         lastDirection[1] = direction[1];
       }
@@ -288,11 +327,9 @@ function updatePlayerPosition() {
   }
 }
 
-function statusCheck() {}
-
 function bombSequence() {
   if (place) {
-    if (workField[playerPosition[0] + lastDirection[0]][playerPosition[1] + lastDirection[1]] !== block) {
+    if (workField[playerPosition[0] + lastDirection[0]][playerPosition[1] + lastDirection[1]] !== block && workField[playerPosition[0] + lastDirection[0]][playerPosition[1] + lastDirection[1]] !== box) {
       workField[playerPosition[0] + lastDirection[0]][playerPosition[1] + lastDirection[1]] = bomb;
       bombExplodes(playerPosition[0] + lastDirection[0], playerPosition[1] + lastDirection[1]);
     }
@@ -311,25 +348,33 @@ function bombExplodes(y, x) {
       });
 
       if (item[0] > 0 && item[0] < fieldY + 1 && item[1] > 0 && item[1] < fieldX + 1) {
-        if (workField[item[0]][item[1]] === monster) {
-          monsterPosition.find(function (it) {
-            return it[0] === item[0] && it[1] === item[1];
-          })[2] = "Dead";
-        }
-
-        if (workField[item[0]][item[1]] === player) {
-          playerPosition[2] = "Killed";
-        }
-
         if (indexCheck && workField[item[0]][item[1]] !== block || !indexCheck && workField[a[0]][a[1]] === fire && workField[item[0]][item[1]] !== block) {
           workField[item[0]][item[1]] = fire;
+
+          if (workField[item[0]][item[1]] === player) {
+            playerPosition[2] = "Killed";
+            workField[item[0]][item[1]] = fire;
+          }
+
+          if (workField[item[0]][item[1]] === monster) {
+            monsterPosition.find(function (it) {
+              return it[0] === item[0] && it[1] === item[1];
+            })[2] = "Dead";
+            workField[item[0]][item[1]] = fire;
+          }
+
           setTimeout(function () {
-            workField[item[0]][item[1]] = freeField;
+            if (workField[item[0]][item[1]] !== bomb && workField[item[0]][item[1]] !== block) {
+              workField[item[0]][item[1]] = freeField;
+            }
           }, 1500);
         }
       }
     });
-    workField[y][x] = freeField;
+    workField[y][x] = fire;
+    setTimeout(function () {
+      workField[y][x] = freeField;
+    }, 1500);
   }, 3000);
 }
 
@@ -402,7 +447,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "61349" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "54834" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
