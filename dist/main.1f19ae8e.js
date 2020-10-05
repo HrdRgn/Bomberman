@@ -125,21 +125,23 @@ var workField = [];
 var playerPosition = [];
 var direction = [0, 0];
 var lastDirection = [0, 1];
-var bomb = "B&#8200;&#8200;";
-var freeField = "&#8195;";
-var monster = "M&#8202;";
-var block = "&#9609;";
-var player = "P&#8196;&#8202;";
-var fire = "F&#8202;&#8197;&#8202;";
-var box = "&#9618;&#8198;&#8202;";
+var bomb = "B";
+var freeField = " ";
+var monster = "M";
+var block = "&#9608;";
+var player = "P";
+var fire = "F";
+var box = "&#9617;";
 var gameInterval;
 var fieldY;
 var fieldX;
 var enemies;
 var place;
+var playing;
 var startButton = document.getElementById("startButton");
 
 function validate(name, info, min, max) {
+  // проверяем вводимые данные
   if (info >= min && info <= max) {
     return true;
   } else {
@@ -149,16 +151,21 @@ function validate(name, info, min, max) {
 }
 
 startButton.addEventListener("click", function (e) {
-  fieldX = Math.round(Number(document.getElementById("fieldX").value)) || 30;
-  fieldY = Math.round(Number(document.getElementById("fieldY").value)) || 20;
-  enemies = Number(document.getElementById("enemies").value) || 10;
+  // вешаем запуск игры на startbutton
+  if (!playing) {
+    fieldX = Math.round(Number(document.getElementById("fieldX").value)) || 40;
+    fieldY = Math.round(Number(document.getElementById("fieldY").value)) || 20;
+    enemies = Number(document.getElementById("enemies").value) || 10;
 
-  if (validate("fieldX", fieldX, 10, 30) && validate("fieldY", fieldY, 10, 30) && validate("enemies", enemies, 1, 15)) {
-    gameStart();
+    if (validate("fieldX", fieldX, 10, 60) && validate("fieldY", fieldY, 10, 20) && validate("enemies", enemies, 1, 15)) {
+      gameStart();
+      playing = true;
+    }
   }
 });
 
 function gameStart() {
+  // запуск игры, случайное заполнение игрового поля, скрытие лишних элементов
   for (var i = 0; i < enemies; i++) {
     monsterPosition[i] = new Array(3);
     monsterPosition[i][0] = getRandom(1, fieldY);
@@ -181,9 +188,9 @@ function gameStart() {
           return item[0] === _i && item[1] === j;
         })) {
           workField[_i][j] = monster;
-        } else if (getRandom(0, 0.565)) {
+        } else if (getRandom(0, 0.545)) {
           workField[_i][j] = block;
-        } else if (getRandom(1, 1.4)) {
+        } else if (getRandom(0, 0.6)) {
           workField[_i][j] = box;
         } else {
           workField[_i][j] = freeField;
@@ -202,7 +209,7 @@ function gameStart() {
 
   workField[playerPosition[0]][playerPosition[1]] = player;
   createField();
-  document.getElementById("status").innerText = playerPosition[2];
+  document.getElementById("status").innerText = "Playing";
   document.getElementById("startButton").style.visibility = "hidden";
   gameInterval = setInterval(function () {
     return runningGame();
@@ -210,6 +217,7 @@ function gameStart() {
 }
 
 function createField() {
+  // отрисовываем поле с 0
   workField.map(function (item) {
     var array = document.createElement("div");
     array.innerHTML = item.join("");
@@ -218,6 +226,7 @@ function createField() {
 }
 
 function updateField() {
+  // обновляем поле после каждого хода
   workField.map(function (item) {
     var array = document.createElement("div");
     array.innerHTML = item.join("");
@@ -227,26 +236,33 @@ function updateField() {
 }
 
 function clearField() {
+  // убираем поле после окончания игры
   workField.map(function () {
     document.getElementById("app").firstChild.remove();
   });
 }
 
 function getRandom(min, max) {
+  // функция для получения вероятности хода, заполнения поля и т.п.
   return Math.round(Math.random() * (max - min) + min);
 }
 
 function runningGame() {
-  updatePlayerPosition();
-  monsterThinks();
-  monsterMove();
-  bombSequence();
-  document.getElementById("status").innerText = playerPosition[2];
-  updateField();
+  // процесс прохождения хода
+  updatePlayerPosition(); // обновляем позицию игрока по результату нажатия клавиши
+
+  monsterThinks(); // монстры выбирают дальнейший путь
+
+  monsterMove(); // монстры ходят
+
+  bombSequence(); // если был нажат пробел - срабатывает установка бомбы
+
+  updateField(); // ообновляем поле после каждого хода
 
   if (!monsterPosition.some(function (item) {
     return item[2] !== "Dead";
   })) {
+    // проверка на победу или поражение
     document.getElementById("status").innerText = "Victory";
   }
 
@@ -254,9 +270,11 @@ function runningGame() {
     document.getElementById("status").innerText = "Defeat";
   }
 
-  if (document.getElementById("status").innerText === "Defeat" || document.getElementById("status").innerText === "Victory") {
+  if ( // события завершения игры
+  document.getElementById("status").innerText === "Defeat" || document.getElementById("status").innerText === "Victory") {
     clearInterval(gameInterval);
     setTimeout(function () {
+      playing = false;
       clearField();
       document.getElementById("startButton").style.visibility = "visible";
     }, 2500);
@@ -264,6 +282,7 @@ function runningGame() {
 }
 
 function monsterThinks() {
+  // монстр определяет куда он будет ходить
   monsterPosition.map(function (item) {
     if (item[2] !== "Dead") {
       var nextStepY = item[0] + getRandom(-1, 1);
@@ -287,6 +306,7 @@ function monsterThinks() {
 }
 
 function monsterMove() {
+  // монстер ходит и умирает/ест игрока если может
   monsterPosition.map(function (item) {
     var a = workField[item[0]][item[1]];
 
@@ -304,6 +324,7 @@ function monsterMove() {
 }
 
 function updatePlayerPosition() {
+  // игрок ходит по результатам нажатия клавиш
   if (playerPosition[2] === "Alive") {
     var a = workField[playerPosition[0] + direction[0]][playerPosition[1] + direction[1]];
 
@@ -328,10 +349,12 @@ function updatePlayerPosition() {
 }
 
 function bombSequence() {
+  //процесс установки бомбы
   if (place) {
     if (workField[playerPosition[0] + lastDirection[0]][playerPosition[1] + lastDirection[1]] !== block && workField[playerPosition[0] + lastDirection[0]][playerPosition[1] + lastDirection[1]] !== box) {
       workField[playerPosition[0] + lastDirection[0]][playerPosition[1] + lastDirection[1]] = bomb;
-      bombExplodes(playerPosition[0] + lastDirection[0], playerPosition[1] + lastDirection[1]);
+      bombExplodes( // процесс взрыва бомбы с задержкой
+      playerPosition[0] + lastDirection[0], playerPosition[1] + lastDirection[1]);
     }
   }
 
@@ -339,6 +362,7 @@ function bombSequence() {
 }
 
 function bombExplodes(y, x) {
+  // процесс взрыва бомбы с задержкой в координатах ее установки
   setTimeout(function () {
     var bombZone = [[y + 1, x], [y + 2, x], [y + 3, x], [y - 1, x], [y - 2, x], [y - 3, x], [y, x + 1], [y, x + 2], [y, x + 3], [y, x - 1], [y, x - 2], [y, x - 3]];
     bombZone.map(function (item, index, array) {
@@ -348,7 +372,8 @@ function bombExplodes(y, x) {
       });
 
       if (item[0] > 0 && item[0] < fieldY + 1 && item[1] > 0 && item[1] < fieldX + 1) {
-        if (indexCheck && workField[item[0]][item[1]] !== block || !indexCheck && workField[a[0]][a[1]] === fire && workField[item[0]][item[1]] !== block) {
+        if ( // проверка на проход огня через стены и на убийство взрывом игрока/монстров
+        indexCheck && workField[item[0]][item[1]] !== block || !indexCheck && workField[a[0]][a[1]] === fire && workField[item[0]][item[1]] !== block) {
           workField[item[0]][item[1]] = fire;
 
           if (workField[item[0]][item[1]] === player) {
@@ -379,6 +404,7 @@ function bombExplodes(y, x) {
 }
 
 document.addEventListener("keydown", function (e) {
+  // реализация управления за счет нажатия клавишь
   var keyName = e.key;
 
   switch (keyName) {
@@ -447,7 +473,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "54834" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "60928" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};

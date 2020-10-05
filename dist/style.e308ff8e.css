@@ -8,15 +8,13 @@ html {
 }
 
 html, * {
-  font-family: "Segoe UI";
+  font-family: 'Courier New', Courier, monospace;
 }
 
 body {
   margin: auto;
   width: 80%;
   text-align:center;
-
-
 }
 
 h1 {
